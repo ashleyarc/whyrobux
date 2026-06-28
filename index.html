@@ -1620,34 +1620,68 @@ function sendMsg() {
   aiCallClaude();
 }
 
-// ════ AI CHAT ════
+// ════ GEMINI AI CHAT ════
+const GEMINI_API_KEY = 'ISI_API_KEY_GEMINI_KAMU'; // ← ganti
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+const AI_SYSTEM_PROMPT = `Kamu adalah RoboCS, AI customer service profesional untuk platform jual beli Robux bernama "WhyRobux". 
+Kamu harus selalu menjawab dalam Bahasa Indonesia yang ramah, sopan, dan helpful. Gunakan emoji secukupnya.
+
+=== INFO PLATFORM WHYROBUX ===
+- Platform jual beli Robux (mata uang game Roblox) terpercaya
+- Seller aktif: PixelKing (⭐4.9), StarDust (⭐4.8), NightRaider (⭐5.0), BlazeFire (⭐4.7), CrystalDev (⭐4.9), SkyWalker (⭐4.6)
+- Harga mulai $3.58 per 1.000 Robux
+- Pengiriman: Instan hingga 10 menit
+- Garansi tersedia: Permanen, 24 Jam, 1 Jam
+- Tingkat sukses: 99.6%
+- Support 24/7
+
+=== METODE DEPOSIT ===
+- USDT TRC-20 / ERC-20 (otomatis, instan)
+- Binance Pay (otomatis, instan)
+- Transfer Bank (manual, 1-24 jam)
+- Gift Card (manual, perlu review)
+- LTC / ETH (otomatis, cepat)
+
+=== KEBIJAKAN ===
+- Refund: Tersedia jika Robux tidak masuk dalam 24 jam dengan bukti transaksi
+- Dispute: Bisa dibuka maksimal 48 jam setelah transaksi
+- Garansi Permanen: Jika akun kena ban, akan diisi ulang gratis
+- Biaya platform: 5% dari total transaksi (untuk seller)
+- Minimum deposit: $5.00
+- Minimum penarikan seller: $10.00
+
+=== PANDUAN MENJAWAB ===
+- Status pesanan → Minta nomor pesanan (format #WR-XXXXX), informasikan sedang dicek estimasi 1-3 menit
+- Robux belum masuk → Minta screenshot + nomor pesanan, investigasi max 15 menit
+- Refund → Bisa diproses jika tidak masuk 24 jam, minta bukti pembayaran
+- Deposit → Jelaskan metode yang tersedia sesuai kebutuhan user
+- Seller terbaik → Rekomendasikan NightRaider (⭐5.0) dan PixelKing (⭐4.9)
+- Komplain → Dengarkan dengan empati, tawarkan solusi konkret
+- Jika tidak tahu jawaban pasti → Jujur dan sarankan hubungi admin via tiket
+
+Selalu akhiri percakapan dengan tawaran bantuan lanjutan.`;
+
 let aiChatHistory = [];
 let aiChatBusy = false;
 
-const AI_SYSTEM = `Kamu adalah RoboCS, AI customer service untuk platform jual beli Robux bernama "WhyRobux".
-Bantu customer dengan ramah dan profesional dalam Bahasa Indonesia. Gunakan emoji secukupnya.
-
-Info platform:
-- Seller: PixelKing (4.9★), StarDust (4.8★), NightRaider (5.0★), BlazeFire (4.7★), CrystalDev (4.9★), SkyWalker (4.6★)
-- Harga mulai $3.58/1K Robux. Pengiriman instan s/d 10 menit. Garansi: Permanen, 24 Jam, 1 Jam.
-- Deposit via USDT, Binance Pay, Transfer Bank, Gift Card, LTC/ETH.
-- Refund tersedia jika Robux tidak masuk dalam 24 jam dengan bukti transaksi.
-- Support 24/7 via AI.
-
-Panduan:
-- Status pesanan → minta nomor pesanan, informasikan sedang dicek estimasi 1-3 menit.
-- Robux belum masuk → minta screenshot + nomor pesanan, investigasi 15 menit.
-- Refund → bisa diproses jika tidak masuk 24 jam, dengan bukti.
-- Deposit → jelaskan metode yang tersedia (USDT/Bank/eWallet).
-- Seller terbaik → rekomendasikan NightRaider (5.0★) dan PixelKing (4.9★).
-- Selalu tutup dengan tawaran bantuan lanjutan jika perlu.`;
+function sendMsg() {
+  const inp = document.getElementById('chatIn');
+  if (!inp.value.trim() || aiChatBusy) return;
+  const text = inp.value.trim();
+  inp.value = '';
+  aiAppendMsg('user', text);
+  aiChatHistory.push({ role: 'user', parts: [{ text }] });
+  aiCallGemini();
+}
 
 function aiAppendMsg(role, text) {
   const body = document.getElementById('chatBody');
   const d = document.createElement('div');
   d.className = 'msg ' + (role === 'user' ? 'msg-user' : 'msg-admin');
-  const now = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-  d.innerHTML = text + '<div class="msg-meta">' + (role==='user'?'Kamu':'RoboCS') + ' • ' + now + '</div>';
+  const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  const formatted = text.replace(/\n/g, '<br>');
+  d.innerHTML = formatted + '<div class="msg-meta">' + (role === 'user' ? 'Kamu' : 'RoboCS') + ' • ' + now + '</div>';
   body.appendChild(d);
   body.scrollTop = body.scrollHeight;
 }
@@ -1661,31 +1695,40 @@ function aiShowTyping(show) {
   }
 }
 
-async function aiCallClaude() {
+async function aiCallGemini() {
   aiChatBusy = true;
   const btn = document.getElementById('chatSendBtn');
   if (btn) btn.disabled = true;
   aiShowTyping(true);
+
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: AI_SYSTEM,
-        messages: aiChatHistory
+        system_instruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+        contents: aiChatHistory,
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
       })
     });
-    const data = await res.json();
-    const reply = data.content?.map(c=>c.text||'').join('') || 'Maaf, terjadi error. Coba lagi ya!';
+
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.error?.message || 'API error');
+
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ||
+                  'Maaf, saya tidak bisa menjawab saat ini. Silakan coba lagi! 🙏';
+
     aiShowTyping(false);
     aiAppendMsg('bot', reply);
-    aiChatHistory.push({ role: 'assistant', content: reply });
-  } catch(e) {
+    aiChatHistory.push({ role: 'model', parts: [{ text: reply }] });
+
+  } catch (e) {
     aiShowTyping(false);
-    aiAppendMsg('bot', '⚠️ Koneksi bermasalah. Mohon coba beberapa saat lagi.');
+    console.error('Gemini error:', e);
+    aiAppendMsg('bot', '⚠️ Koneksi bermasalah. Mohon coba beberapa saat lagi ya!');
   }
+
   aiChatBusy = false;
   if (btn) btn.disabled = false;
 }
