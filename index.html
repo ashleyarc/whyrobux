@@ -228,14 +228,26 @@ nav {
 }
 .logo span { color: var(--r1); }
 
-.nav-links { display: flex; gap: 2px; margin-left: 12px; }
+.nav-links { display: flex; gap: 2px; margin-left: 12px; position: relative; }
+.nav-slider-pill {
+  position: absolute;
+  height: 34px;
+  background: var(--r-light);
+  border-radius: 8px;
+  transition: left 0.3s cubic-bezier(.4,0,.2,1), width 0.3s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 0;
+}
 .nav-links a {
+  position: relative; z-index: 1;
   padding: 7px 13px; border-radius: 8px; font-family: var(--font-body);
   font-size: 14px; font-weight: 500; text-decoration: none;
-  color: var(--text-soft); transition: .15s;
+  color: var(--text-soft); transition: color .15s;
 }
-.nav-links a:hover { background: var(--r-light); color: var(--r3); }
-.nav-links a.active { background: var(--r-light); color: var(--r3); font-weight: 600; }
+.nav-links a:hover { color: var(--r3); }
+.nav-links a.active { color: var(--r3); font-weight: 600; }
 
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .balance-pill {
@@ -447,6 +459,8 @@ tbody tr:hover { background: var(--gray-50); }
 .seller-stat { background: #fff; border: 1px solid rgba(221,107,32,.2); border-radius: var(--radius); padding: 20px; }
 .seller-stat .label { font-family: var(--font-body); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #a0601c; margin-bottom: 8px; }
 .seller-stat .value { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--dark); letter-spacing: -0.03em; }
+
+@keyframes tdot { 0%,80%,100%{transform:translateY(0);opacity:.5} 40%{transform:translateY(-5px);opacity:1} }
 
 /* ── CHAT ── */
 .chat-wrap { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; height: 460px; }
@@ -726,11 +740,12 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       Why<span>Robux</span>
     </a>
     <div class="nav-links" id="navLinks">
-      <a href="#" onclick="showPage('home')" id="nav-home" class="active">Home</a>
-      <a href="#" onclick="showPage('buy')" id="nav-buy">Beli Robux</a>
-      <a href="#" onclick="showPage('orders')" id="nav-orders">Pesanan Saya</a>
-      <a href="#" onclick="showPage('deposit')" id="nav-deposit">Deposit</a>
-      <a href="#" onclick="showPage('support')" id="nav-support">Support</a>
+      <div class="nav-slider-pill" id="navSliderPill"></div>
+      <a href="#" onclick="showPage('home');setNavActive(this)" id="nav-home" class="active">Home</a>
+      <a href="#" onclick="showPage('buy');setNavActive(this)" id="nav-buy">Beli Robux</a>
+      <a href="#" onclick="showPage('orders');setNavActive(this)" id="nav-orders">Pesanan Saya</a>
+      <a href="#" onclick="showPage('deposit');setNavActive(this)" id="nav-deposit">Deposit</a>
+      <a href="#" onclick="showPage('support');setNavActive(this)" id="nav-support">Support</a>
     </div>
     <div class="nav-right">
       <div class="balance-pill" id="navBalance">💰 $0.00</div>
@@ -875,22 +890,16 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         <div>
           <div class="table-wrap">
             <div class="table-filters">
-              <input class="filter-input" placeholder="🔍  Cari seller..." style="flex:1;min-width:120px;">
-              <select class="filter-select"><option>Semua jumlah</option><option>Di bawah 5K R$</option><option>5K–20K R$</option><option>20K+ R$</option></select>
-              <select class="filter-select"><option>Harga terbaik</option><option>Robux terbanyak</option><option>Rating tertinggi</option></select>
-              <select class="filter-select"><option>Semua garansi</option><option>Permanen</option><option>24 jam+</option></select>
+              <input class="filter-input" id="buySearchInput" placeholder="🔍  Cari seller..." style="flex:1;min-width:120px;" oninput="filterBuyTable()">
+              <select class="filter-select" id="buyFilterJumlah" onchange="filterBuyTable()"><option value="">Semua jumlah</option><option value="1000">1,000 R$</option><option value="2500">2,500 R$</option><option value="5000">5,000 R$</option><option value="10000">10,000 R$</option><option value="25000">25,000 R$</option><option value="50000">50,000 R$</option></select>
+              <select class="filter-select" id="buyFilterSort" onchange="filterBuyTable()"><option value="best">Harga terbaik</option><option value="asc">Termurah</option><option value="desc">Termahal</option><option value="rating">Rating tertinggi</option></select>
+              <select class="filter-select" id="buyFilterGaransi" onchange="filterBuyTable()"><option value="">Semua garansi</option><option value="Permanen">Permanen</option><option value="24 Jam">24 Jam</option><option value="1 Jam">1 Jam</option></select>
             </div>
             <table>
               <thead><tr><th>Robux</th><th>Rate/1K</th><th>Total</th><th>Seller</th><th>Garansi</th><th>Pengiriman</th><th></th></tr></thead>
-              <tbody>
-                <tr><td><div class="robux-amt">1,000 R$</div></td><td><span class="rate-tag">$3.65</span></td><td><span class="price-tag">$3.65</span></td><td><div class="seller-name"><div class="seller-av">PK</div><span class="seller-nm">PixelKing</span> <span class="badge badge-red">⭐ 4.9</span></div></td><td><span class="warranty-badge w-perm">♾ Permanen</span></td><td><span class="badge badge-gray">⚡ Instan</span></td><td><button class="btn btn-primary btn-sm" onclick="openBuyModal('1,000','$3.65','PixelKing')">Beli</button></td></tr>
-                <tr><td><div class="robux-amt">2,500 R$</div></td><td><span class="rate-tag">$3.70</span></td><td><span class="price-tag">$9.25</span></td><td><div class="seller-name"><div class="seller-av">SD</div><span class="seller-nm">StarDust</span> <span class="badge badge-red">⭐ 4.8</span></div></td><td><span class="warranty-badge w-perm">♾ Permanen</span></td><td><span class="badge badge-gray">⚡ Instan</span></td><td><button class="btn btn-primary btn-sm" onclick="openBuyModal('2,500','$9.25','StarDust')">Beli</button></td></tr>
-                <tr><td><div class="robux-amt">5,000 R$</div></td><td><span class="rate-tag">$3.72</span></td><td><span class="price-tag">$18.60</span></td><td><div class="seller-name"><div class="seller-av">NR</div><span class="seller-nm">NightRaider</span> <span class="badge badge-red">⭐ 5.0</span></div></td><td><span class="warranty-badge w-perm">♾ Permanen</span></td><td><span class="badge badge-gray">⚡ Instan</span></td><td><button class="btn btn-primary btn-sm" onclick="openBuyModal('5,000','$18.60','NightRaider')">Beli</button></td></tr>
-                <tr><td><div class="robux-amt">10,000 R$</div></td><td><span class="rate-tag">$3.68</span></td><td><span class="price-tag">$36.80</span></td><td><div class="seller-name"><div class="seller-av">BF</div><span class="seller-nm">BlazeFire</span> <span class="badge badge-red">⭐ 4.7</span></div></td><td><span class="warranty-badge w-24h">⏱ 24 Jam</span></td><td><span class="badge badge-gray">~5 mnt</span></td><td><button class="btn btn-primary btn-sm" onclick="openBuyModal('10,000','$36.80','BlazeFire')">Beli</button></td></tr>
-                <tr><td><div class="robux-amt">25,000 R$</div></td><td><span class="rate-tag">$3.62</span></td><td><span class="price-tag">$90.50</span></td><td><div class="seller-name"><div class="seller-av">CD</div><span class="seller-nm">CrystalDev</span> <span class="badge badge-red">⭐ 4.9</span></div></td><td><span class="warranty-badge w-perm">♾ Permanen</span></td><td><span class="badge badge-gray">⚡ Instan</span></td><td><button class="btn btn-primary btn-sm" onclick="openBuyModal('25,000','$90.50','CrystalDev')">Beli</button></td></tr>
-                <tr><td><div class="robux-amt">50,000 R$</div></td><td><span class="rate-tag">$3.58</span></td><td><span class="price-tag">$179.00</span></td><td><div class="seller-name"><div class="seller-av">SW</div><span class="seller-nm">SkyWalker</span> <span class="badge badge-red">⭐ 4.6</span></div></td><td><span class="warranty-badge w-1h">⏱ 1 Jam</span></td><td><span class="badge badge-gray">~10 mnt</span></td><td><button class="btn btn-primary btn-sm" onclick="openBuyModal('50,000','$179.00','SkyWalker')">Beli</button></td></tr>
-              </tbody>
+              <tbody id="buyTableBody"></tbody>
             </table>
+            <div id="buyNoResult" style="display:none;text-align:center;padding:40px;color:var(--text-soft);font-size:14px;font-family:var(--font-body);">😕 Tidak ada seller yang cocok dengan pencarian kamu.</div>
           </div>
         </div>
         <div>
@@ -1004,20 +1013,32 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       </div>
       <div class="grid-2">
         <div>
-          <div class="chat-wrap">
+          <div class="chat-wrap" style="height:500px;">
             <div class="chat-header">
-              <div style="width:9px;height:9px;background:var(--r1);border-radius:99px;"></div>
-              <div class="chat-header-title">Pesanan #WR-20847 — Aktif</div>
+              <div style="width:9px;height:9px;background:#22c55e;border-radius:99px;animation:pulse 1.5s infinite;"></div>
+              <div class="chat-header-title">Pusat Bantuan — AI Agent</div>
               <span class="badge badge-red" style="margin-left:auto;">Online</span>
+              <span style="background:#ede9fe;color:#7c3aed;border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700;font-family:var(--font-body);margin-left:6px;">🤖 AI</span>
             </div>
             <div class="chat-body" id="chatBody">
-              <div class="msg msg-admin">Halo! Ada yang bisa kami bantu?<div class="msg-meta">Support • 14:30</div></div>
-              <div class="msg msg-user">Saya belum menerima Robux untuk pesanan #WR-20841<div class="msg-meta">Kamu • 14:31</div></div>
-              <div class="msg msg-admin">Saya melihat pesananmu — seller sedang memproses. Diperkirakan sekitar 3 menit lagi!<div class="msg-meta">Support • 14:32</div></div>
+              <div class="msg msg-admin">Halo! 👋 Saya <strong>RoboCS</strong>, AI assistant WhyRobux. Saya siap membantu kamu 24/7. Ada yang bisa dibantu?<div class="msg-meta">RoboCS • baru saja</div></div>
+            </div>
+            <div id="chatTypingWrap" style="display:none;padding:0 16px 4px;">
+              <div class="msg msg-admin" style="display:inline-flex;gap:5px;align-items:center;padding:10px 16px;">
+                <span style="width:7px;height:7px;background:#aaa;border-radius:50%;display:inline-block;animation:tdot 1.2s infinite;"></span>
+                <span style="width:7px;height:7px;background:#aaa;border-radius:50%;display:inline-block;animation:tdot 1.2s .2s infinite;"></span>
+                <span style="width:7px;height:7px;background:#aaa;border-radius:50%;display:inline-block;animation:tdot 1.2s .4s infinite;"></span>
+              </div>
+            </div>
+            <div style="padding:8px 14px 4px;display:flex;flex-wrap:wrap;gap:6px;" id="chatQuickReplies">
+              <button onclick="aiSendQuick('Status pesanan saya')" style="border:1.5px solid var(--r1);color:var(--r1);background:#fff;border-radius:99px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);">📦 Status pesanan</button>
+              <button onclick="aiSendQuick('Robux saya belum masuk')" style="border:1.5px solid var(--r1);color:var(--r1);background:#fff;border-radius:99px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);">⚠️ Robux belum masuk</button>
+              <button onclick="aiSendQuick('Cara deposit dana')" style="border:1.5px solid var(--r1);color:var(--r1);background:#fff;border-radius:99px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);">💳 Cara deposit</button>
+              <button onclick="aiSendQuick('Proses refund pesanan')" style="border:1.5px solid var(--r1);color:var(--r1);background:#fff;border-radius:99px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);">🔄 Refund</button>
             </div>
             <div class="chat-footer">
-              <input class="chat-input" id="chatIn" placeholder="Ketik pesan..." onkeydown="if(event.key==='Enter')sendMsg()">
-              <button class="btn btn-primary btn-sm" onclick="sendMsg()">Kirim</button>
+              <input class="chat-input" id="chatIn" placeholder="Ketik pesan ke AI..." onkeydown="if(event.key==='Enter')sendMsg()">
+              <button class="btn btn-primary btn-sm" id="chatSendBtn" onclick="sendMsg()">Kirim</button>
             </div>
           </div>
         </div>
@@ -1504,6 +1525,7 @@ function applyLogin(u) {
 
   showPage('home');
   updateDbStatus(!isDemoMode && !!supabaseClient);
+  setTimeout(initNavSlider, 50);
 }
 
 async function saveProfile() {
@@ -1600,14 +1622,167 @@ function calcListing() {
 }
 function sendMsg() {
   const inp = document.getElementById('chatIn');
-  if(!inp.value.trim())return;
-  const body = document.getElementById('chatBody');
-  const msg = document.createElement('div');
-  msg.className='msg msg-user';
-  msg.innerHTML=inp.value+'<div class="msg-meta">Kamu • baru saja</div>';
-  body.appendChild(msg); inp.value=''; body.scrollTop=body.scrollHeight;
-  setTimeout(()=>{ const r=document.createElement('div'); r.className='msg msg-admin'; r.innerHTML='Terima kasih! Agen support akan merespons sebentar. Rata-rata tunggu: &lt;2 mnt.<div class="msg-meta">Support • baru saja</div>'; body.appendChild(r); body.scrollTop=body.scrollHeight; },1000);
+  if(!inp.value.trim() || aiChatBusy) return;
+  const text = inp.value.trim();
+  inp.value = '';
+  aiAppendMsg('user', text);
+  aiChatHistory.push({ role: 'user', content: text });
+  aiCallClaude();
 }
+
+// ════ AI CHAT ════
+let aiChatHistory = [];
+let aiChatBusy = false;
+
+const AI_SYSTEM = `Kamu adalah RoboCS, AI customer service untuk platform jual beli Robux bernama "WhyRobux".
+Bantu customer dengan ramah dan profesional dalam Bahasa Indonesia. Gunakan emoji secukupnya.
+
+Info platform:
+- Seller: PixelKing (4.9★), StarDust (4.8★), NightRaider (5.0★), BlazeFire (4.7★), CrystalDev (4.9★), SkyWalker (4.6★)
+- Harga mulai $3.58/1K Robux. Pengiriman instan s/d 10 menit. Garansi: Permanen, 24 Jam, 1 Jam.
+- Deposit via USDT, Binance Pay, Transfer Bank, Gift Card, LTC/ETH.
+- Refund tersedia jika Robux tidak masuk dalam 24 jam dengan bukti transaksi.
+- Support 24/7 via AI.
+
+Panduan:
+- Status pesanan → minta nomor pesanan, informasikan sedang dicek estimasi 1-3 menit.
+- Robux belum masuk → minta screenshot + nomor pesanan, investigasi 15 menit.
+- Refund → bisa diproses jika tidak masuk 24 jam, dengan bukti.
+- Deposit → jelaskan metode yang tersedia (USDT/Bank/eWallet).
+- Seller terbaik → rekomendasikan NightRaider (5.0★) dan PixelKing (4.9★).
+- Selalu tutup dengan tawaran bantuan lanjutan jika perlu.`;
+
+function aiAppendMsg(role, text) {
+  const body = document.getElementById('chatBody');
+  const d = document.createElement('div');
+  d.className = 'msg ' + (role === 'user' ? 'msg-user' : 'msg-admin');
+  const now = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  d.innerHTML = text + '<div class="msg-meta">' + (role==='user'?'Kamu':'RoboCS') + ' • ' + now + '</div>';
+  body.appendChild(d);
+  body.scrollTop = body.scrollHeight;
+}
+
+function aiShowTyping(show) {
+  const el = document.getElementById('chatTypingWrap');
+  const body = document.getElementById('chatBody');
+  if (el) {
+    el.style.display = show ? 'block' : 'none';
+    if (show) body.scrollTop = body.scrollHeight;
+  }
+}
+
+async function aiCallClaude() {
+  aiChatBusy = true;
+  const btn = document.getElementById('chatSendBtn');
+  if (btn) btn.disabled = true;
+  aiShowTyping(true);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: AI_SYSTEM,
+        messages: aiChatHistory
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.map(c=>c.text||'').join('') || 'Maaf, terjadi error. Coba lagi ya!';
+    aiShowTyping(false);
+    aiAppendMsg('bot', reply);
+    aiChatHistory.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    aiShowTyping(false);
+    aiAppendMsg('bot', '⚠️ Koneksi bermasalah. Mohon coba beberapa saat lagi.');
+  }
+  aiChatBusy = false;
+  if (btn) btn.disabled = false;
+}
+
+function aiSendQuick(text) {
+  document.getElementById('chatIn').value = text;
+  sendMsg();
+}
+
+// ════ NAV SLIDER ════
+function setNavActive(el) {
+  document.querySelectorAll('#navLinks a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+  moveNavSlider(el);
+}
+
+function moveNavSlider(el) {
+  const pill = document.getElementById('navSliderPill');
+  const links = document.getElementById('navLinks');
+  if (!pill || !links || !el) return;
+  const linkRect = el.getBoundingClientRect();
+  const navRect = links.getBoundingClientRect();
+  pill.style.left = (linkRect.left - navRect.left) + 'px';
+  pill.style.width = linkRect.width + 'px';
+}
+
+// Init slider on load & resize
+function initNavSlider() {
+  const active = document.querySelector('#navLinks a.active');
+  if (active) moveNavSlider(active);
+}
+window.addEventListener('resize', initNavSlider);
+
+// ════ BUY TABLE (SEARCHABLE) ════
+const SELLERS_DATA = [
+  { robux: '1,000 R$', amount: 1000, rate: '$3.65', total: '$3.65', totalNum: 3.65, seller: 'PixelKing', rating: 4.9, garansi: 'Permanen', garansiClass: 'w-perm', garansiIcon: '♾', delivery: 'Instan', av: 'PK' },
+  { robux: '2,500 R$', amount: 2500, rate: '$3.70', total: '$9.25', totalNum: 9.25, seller: 'StarDust', rating: 4.8, garansi: 'Permanen', garansiClass: 'w-perm', garansiIcon: '♾', delivery: 'Instan', av: 'SD' },
+  { robux: '5,000 R$', amount: 5000, rate: '$3.72', total: '$18.60', totalNum: 18.60, seller: 'NightRaider', rating: 5.0, garansi: 'Permanen', garansiClass: 'w-perm', garansiIcon: '♾', delivery: 'Instan', av: 'NR' },
+  { robux: '10,000 R$', amount: 10000, rate: '$3.68', total: '$36.80', totalNum: 36.80, seller: 'BlazeFire', rating: 4.7, garansi: '24 Jam', garansiClass: 'w-24h', garansiIcon: '⏱', delivery: '~5 mnt', av: 'BF' },
+  { robux: '25,000 R$', amount: 25000, rate: '$3.62', total: '$90.50', totalNum: 90.50, seller: 'CrystalDev', rating: 4.9, garansi: 'Permanen', garansiClass: 'w-perm', garansiIcon: '♾', delivery: 'Instan', av: 'CD' },
+  { robux: '50,000 R$', amount: 50000, rate: '$3.58', total: '$179.00', totalNum: 179.00, seller: 'SkyWalker', rating: 4.6, garansi: '1 Jam', garansiClass: 'w-1h', garansiIcon: '⏱', delivery: '~10 mnt', av: 'SW' },
+];
+
+function renderBuyTable(data) {
+  const tbody = document.getElementById('buyTableBody');
+  const noResult = document.getElementById('buyNoResult');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  if (data.length === 0) { noResult.style.display='block'; return; }
+  noResult.style.display = 'none';
+  data.forEach(s => {
+    tbody.innerHTML += `<tr>
+      <td><div class="robux-amt">${s.robux}</div></td>
+      <td><span class="rate-tag">${s.rate}</span></td>
+      <td><span class="price-tag">${s.total}</span></td>
+      <td><div class="seller-name"><div class="seller-av">${s.av}</div><span class="seller-nm">${s.seller}</span> <span class="badge badge-red">⭐ ${s.rating}</span></div></td>
+      <td><span class="warranty-badge ${s.garansiClass}">${s.garansiIcon} ${s.garansi}</span></td>
+      <td><span class="badge badge-gray">⚡ ${s.delivery}</span></td>
+      <td><button class="btn btn-primary btn-sm" onclick="openBuyModal('${s.robux.replace(' R$','')}','${s.total}','${s.seller}')">Beli</button></td>
+    </tr>`;
+  });
+}
+
+function filterBuyTable() {
+  const q = (document.getElementById('buySearchInput')?.value || '').toLowerCase().trim();
+  const amt = parseInt(document.getElementById('buyFilterJumlah')?.value) || 0;
+  const garansi = document.getElementById('buyFilterGaransi')?.value || '';
+  const sort = document.getElementById('buyFilterSort')?.value || 'best';
+
+  let data = SELLERS_DATA.filter(s => {
+    const matchSeller = s.seller.toLowerCase().includes(q);
+    const matchAmt = amt === 0 || s.amount === amt;
+    const matchGar = garansi === '' || s.garansi === garansi;
+    return matchSeller && matchAmt && matchGar;
+  });
+
+  if (sort === 'asc') data.sort((a,b) => a.totalNum - b.totalNum);
+  else if (sort === 'desc') data.sort((a,b) => b.totalNum - a.totalNum);
+  else if (sort === 'rating') data.sort((a,b) => b.rating - a.rating);
+
+  renderBuyTable(data);
+}
+
+// Initial render
+document.addEventListener('DOMContentLoaded', () => {
+  renderBuyTable(SELLERS_DATA);
+});
 function notify(msg, type) {
   const c = document.getElementById('notifContainer');
   const n = document.createElement('div');
