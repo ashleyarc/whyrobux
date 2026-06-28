@@ -1610,18 +1610,9 @@ function calcListing() {
   const el = document.getElementById('listingTotal');
   if(el) el.value = total>0?'$'+total:'';
 }
-function sendMsg() {
-  const inp = document.getElementById('chatIn');
-  if(!inp.value.trim() || aiChatBusy) return;
-  const text = inp.value.trim();
-  inp.value = '';
-  aiAppendMsg('user', text);
-  aiChatHistory.push({ role: 'user', content: text });
-  aiCallClaude();
-}
 
 // ════ GEMINI AI CHAT ════
-const GEMINI_API_KEY = 'AQ.Ab8RN6JfsIf6WPtgVjO34HVjO7wG3iWANNExAy_rLzjcJ-kNww'; // ← ganti
+const GEMINI_API_KEY = 'AIzaSyDSB_ONIbPpy8YI7sZ6MQlPEmTjCiqq_O8'; // ← ganti
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 const AI_SYSTEM_PROMPT = `Kamu adalah RoboCS, AI customer service profesional untuk platform jual beli Robux bernama "WhyRobux". 
