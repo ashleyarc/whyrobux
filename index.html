@@ -1677,16 +1677,11 @@ async function aiCallClaude() {
   if (btn) btn.disabled = true;
   aiShowTyping(true);
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: AI_SYSTEM,
-        messages: aiChatHistory
-      })
-    });
+      body: JSON.stringify({ messages: aiChatHistory })
+  });
     const data = await res.json();
     const reply = data.content?.map(c=>c.text||'').join('') || 'Maaf, terjadi error. Coba lagi ya!';
     aiShowTyping(false);
