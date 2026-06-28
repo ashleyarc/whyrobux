@@ -684,12 +684,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         </div>
         <div id="loginError" style="color:var(--r1);font-size:13px;margin-bottom:10px;display:none;font-family:var(--font-body);"></div>
         <button class="btn btn-primary" style="width:100%;justify-content:center;" id="loginBtn" onclick="doLogin()">Sign In</button>
-        <div class="auth-divider">atau coba demo</div>
-        <div class="demo-accounts">
-          <p>⚡ Demo mode — tanpa database</p>
-          <button class="demo-btn" onclick="loginAs('buyer')">🛒 &nbsp; Demo Buyer — Alex_Buyer</button>
-          <button class="demo-btn" onclick="loginAs('seller')">📋 &nbsp; Demo Seller — PixelKing</button>
-        </div>
       </div>
 
       <!-- REGISTER -->
@@ -729,7 +723,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 <div class="db-status-bar" id="dbStatusBar">
   <div class="db-dot" id="dbDot"></div>
   <span id="dbStatusText" style="color:var(--text-soft);">Mengecek koneksi database...</span>
-  <button onclick="showConfigModal()" style="margin-left:auto;font-family:var(--font-body);font-size:12px;color:var(--r1);background:none;border:none;cursor:pointer;font-weight:600;">⚙️ Pengaturan DB</button>
 </div>
 
 <!-- NAV -->
@@ -1240,27 +1233,25 @@ const DEMO_ACCOUNTS = {
 
 let selectedRegisterRole = 'buyer';
 
-// ── Init on load ──
-window.addEventListener('DOMContentLoaded', () => {
-  const savedUrl = localStorage.getItem('sb_url');
-  const savedKey = localStorage.getItem('sb_key');
 
-  if (savedUrl && savedKey) {
-    initSupabase(savedUrl, savedKey);
-  } else {
-    // Show config modal
-    document.getElementById('loadingScreen').classList.add('hidden');
-    document.getElementById('configOverlay').classList.remove('hidden');
-  }
+const SUPABASE_URL = 'https://nnvndgfyklltxjbgpnyw.supabase.co'; // ← ganti
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5udm5kZ2Z5a2xsdHhqYmdwbnl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NzMxNjEsImV4cCI6MjA5ODE0OTE2MX0.-gAjiwouwpTa5fUxXiG89LSXuWDs6MRyB227bm0gGEs'; // ← ganti
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderBuyTable(SELLERS_DATA);
+  initSupabase(SUPABASE_URL, SUPABASE_KEY);
 });
 
 function initSupabase(url, key) {
-  document.getElementById('loadingMsg').textContent = 'Menghubungkan ke Supabase...';
+  document.getElementById('loadingMsg').textContent = 'Menghubungkan ke database...';
   try {
     supabaseClient = createClient(url, key);
-    // Check for existing session
+
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       document.getElementById('loadingScreen').classList.add('hidden');
+      // Sembunyikan config overlay selamanya
+      document.getElementById('configOverlay').classList.add('hidden');
+
       if (session) {
         loadUserProfile(session.user);
       } else {
@@ -1269,12 +1260,12 @@ function initSupabase(url, key) {
       updateDbStatus(true);
     }).catch(() => {
       document.getElementById('loadingScreen').classList.add('hidden');
+      document.getElementById('configOverlay').classList.add('hidden');
       showAuthOverlay();
       updateDbStatus(false);
-      notify('Gagal terhubung ke Supabase. Periksa kredensial.', 'error');
+      notify('Gagal terhubung ke database. Hubungi admin.', 'error');
     });
 
-    // Listen to auth state changes
     supabaseClient.auth.onAuthStateChange((_event, session) => {
       if (session) {
         loadUserProfile(session.user);
@@ -1286,8 +1277,10 @@ function initSupabase(url, key) {
 
   } catch (e) {
     document.getElementById('loadingScreen').classList.add('hidden');
+    document.getElementById('configOverlay').classList.add('hidden');
     showAuthOverlay();
     updateDbStatus(false);
+    notify('Error koneksi database. Hubungi admin.', 'error');
   }
 }
 
@@ -1295,18 +1288,15 @@ function updateDbStatus(ok) {
   const dot = document.getElementById('dbDot');
   const txt = document.getElementById('dbStatusText');
   const profileTxt = document.getElementById('profileDbText');
-  if (isDemoMode) {
-    dot.className = 'db-dot'; dot.style.background = '#ECC94B';
-    txt.textContent = '⚠️ Demo Mode — data tidak disimpan ke database nyata';
-    if (profileTxt) profileTxt.innerHTML = '⚠️ Kamu menggunakan <strong>Demo Mode</strong>. Data tidak tersimpan ke database. <a href="#" onclick="showConfigModal()" style="color:var(--r1)">Setup Supabase</a> untuk menyimpan akun sungguhan.';
-  } else if (ok) {
+
+  if (ok) {
     dot.className = 'db-dot connected';
-    txt.textContent = '✅ Terhubung ke Supabase — akun tersimpan permanen';
-    if (profileTxt) profileTxt.innerHTML = '✅ Akun kamu tersimpan di <strong>Supabase (PostgreSQL)</strong> — database gratis & real-time yang digunakan jutaan developer. Email: <code>' + (currentUser?.email || '-') + '</code>';
+    txt.textContent = '✅ Terhubung ke database — akun tersimpan permanen';
+    if (profileTxt) profileTxt.innerHTML = '✅ Akun kamu tersimpan di <strong>database WhyRobux</strong>. Email: <code>' + (currentUser?.email || '-') + '</code>';
   } else {
     dot.className = 'db-dot error';
-    txt.textContent = '❌ Koneksi database gagal — gunakan Demo Mode atau periksa kredensial';
-    if (profileTxt) profileTxt.innerHTML = '❌ Koneksi ke Supabase gagal. <a href="#" onclick="showConfigModal()" style="color:var(--r1)">Klik di sini untuk setup ulang</a>.';
+    txt.textContent = '❌ Koneksi database bermasalah — hubungi admin';
+    if (profileTxt) profileTxt.innerHTML = '❌ Koneksi ke database gagal. Hubungi admin WhyRobux.';
   }
 }
 
