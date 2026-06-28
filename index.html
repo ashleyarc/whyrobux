@@ -1621,8 +1621,8 @@ function sendMsg() {
 }
 
 // ════ GEMINI AI CHAT ════
-const GEMINI_API_KEY = 'ISI_API_KEY_GEMINI_KAMU'; // ← ganti
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_KEY = 'AQ.Ab8RN6JfsIf6WPtgVjO34HVjO7wG3iWANNExAy_rLzjcJ-kNww'; // ← ganti
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 const AI_SYSTEM_PROMPT = `Kamu adalah RoboCS, AI customer service profesional untuk platform jual beli Robux bernama "WhyRobux". 
 Kamu harus selalu menjawab dalam Bahasa Indonesia yang ramah, sopan, dan helpful. Gunakan emoji secukupnya.
@@ -1701,23 +1701,42 @@ async function aiCallGemini() {
   if (btn) btn.disabled = true;
   aiShowTyping(true);
 
+  // Gabungkan system prompt ke pesan pertama
+  const contentsWithSystem = [
+    { role: 'user', parts: [{ text: AI_SYSTEM_PROMPT + '\n\nUser: ' + aiChatHistory[aiChatHistory.length - 1].parts[0].text }] }
+  ];
+
+  // Kalau sudah ada history sebelumnya, kirim semua
+  const contents = aiChatHistory.length === 1
+    ? contentsWithSystem
+    : [
+        { role: 'user', parts: [{ text: AI_SYSTEM_PROMPT }] },
+        { role: 'model', parts: [{ text: 'Siap! Saya RoboCS, AI assistant WhyRobux. Ada yang bisa dibantu? 😊' }] },
+        ...aiChatHistory
+      ];
+
   try {
     const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
-        contents: aiChatHistory,
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+        contents: contents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1024
+        }
       })
     });
 
     const data = await response.json();
 
-    if (!response.ok) throw new Error(data.error?.message || 'API error');
+    if (!response.ok) {
+      console.error('Gemini error detail:', data);
+      throw new Error(data.error?.message || 'API error');
+    }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ||
-                  'Maaf, saya tidak bisa menjawab saat ini. Silakan coba lagi! 🙏';
+                  'Maaf, saya tidak bisa menjawab saat ini. 🙏';
 
     aiShowTyping(false);
     aiAppendMsg('bot', reply);
@@ -1725,7 +1744,7 @@ async function aiCallGemini() {
 
   } catch (e) {
     aiShowTyping(false);
-    console.error('Gemini error:', e);
+    console.error('Gemini fetch error:', e);
     aiAppendMsg('bot', '⚠️ Koneksi bermasalah. Mohon coba beberapa saat lagi ya!');
   }
 
